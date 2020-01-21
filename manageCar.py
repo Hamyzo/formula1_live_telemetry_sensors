@@ -33,7 +33,7 @@ def parcel_scanned(ID):
 
             print(new_car)
 
-            cars.insert_one(new_car)
+            db.cars.insert_one(new_car)
         else:
             print("Action aborted.")
 
