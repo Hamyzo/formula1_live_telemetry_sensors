@@ -5,19 +5,15 @@ import json
 
 ##listen Raspberry at second sector
 allowed = []
-time_dict = {}
 def on_message(client, data, message):
 	print("Received: "+ str(message.payload) + "on topic" + message.topic)
-	messageJson = json.loads(message.payload)
-	allowed.append(json.loads(message.payload))
+	allowed.append(str(message.payload))
 	print("Allowed list updated: ", allowed)
-	time_dict[messageJson["_id"]] = messageJson["date"]
-	print("Dict: ", time_dict[messageJson["_id"]])
 client = mqtt.Client()
-client.connect('192.168.137.200', 1883, 60)
+client.connect('192.168.137.245', 1883, 60)
 client.on_message = on_message
 client.loop_start()
-client.subscribe('firstSector', qos=0)
+client.subscribe('secondSector', qos=0)
 
 ##publish
 notallowed = []
@@ -31,10 +27,10 @@ while True:
 			ID = ID + str(read_byte)
 		lapTimeJson = '{ "_id": ', ObjectId(ID) ,', "date": ', datetime.now(),' }'
 		lapTime = str(lapTimeJson)
-		if ID in allowed:
+		if ID in allowed and ID not in notallowed:
 			clientPublish = mqtt.Client()
 			clientPublish.connect('localhost', 1883, 60)
-			clientPublish.publish('secondSector', lapTime)
+			clientPublish.publish('thirdSector', lapTime)
 			clientPublish.disconnect()
 			allowed.remove(ID)
 			print('Allowed')
