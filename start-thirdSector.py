@@ -71,18 +71,11 @@ def on_message(client, data, message):
     lap_dict[key_dict] = lap_count
     time_dict[key_dict] = datetime.strptime(value_dict, '%Y-%m-%d %H:%M:%S.%f')
 
-'''client3 = mqtt.Client()
-client3.connect('192.168.137.8', 1883, 60)
-client3.on_message = on_message
-client3.loop_start()
-client3.subscribe('thirdSector', qos=0)'''
-
-##listen second sector
-client2 = mqtt.Client()
-client2.connect('192.168.137.245', 1883, 60)
-client2.on_message = on_message
-client2.loop_start()
-client2.subscribe('secondSector', qos=0)
+client = mqtt.Client()
+client.connect('192.168.137.8', 1883, 60)
+client.on_message = on_message
+client.loop_start()
+client.subscribe('secondSector', qos=0)
 
 ##publish
 PortRF = serial.Serial('/dev/ttyAMA0', 9600)
@@ -106,12 +99,12 @@ while True:
             lapTime = json.dumps(lapTimeJson)
             clientPublish = mqtt.Client()
             clientPublish.connect('localhost', 1883, 60)
-            clientPublish.publish('firstSector', lapTime)
+            clientPublish.publish('thirdSector', lapTime)
             clientPublish.disconnect()
             allowed.remove(ObjectId(ID))
             if lap_dict[str(ObjectId(ID))]>1:
                 sector_time = current_time - time_dict[str(ObjectId(ID))]
-                print("sector time: ", sector_time.total_seconds())
+                print("third sector time: ", sector_time.total_seconds())
                 response = races.update(
                     {
                         "_id": ObjectId(raceId),
@@ -130,7 +123,5 @@ while True:
                 print("else----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
         else:
             print('Not allowed')
-client2.loop_stop()
-'''client3.loop_stop()'''
-client2.disconnect()
-'''client3.disconnect()'''
+client.loop_stop()
+client.disconnect()

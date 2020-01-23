@@ -10,7 +10,7 @@ client = MongoClient('mongodb://localhost:27000/')
 db = client.rasp15
 races = db.races
 
-##listen Raspberry at second sector
+##listen Raspberry at third sector
 allowed = []
 time_dict = {}
 lap_dict = {}
@@ -29,11 +29,12 @@ def on_message(client, data, message):
 	print('lap ', lap_count)
 	lap_dict[key_dict] = lap_count
 	time_dict[key_dict] = datetime.strptime(value_dict, '%Y-%m-%d %H:%M:%S.%f')
+
 client = mqtt.Client()
 client.connect('192.168.137.200', 1883, 60)
 client.on_message = on_message
 client.loop_start()
-client.subscribe('firstSector', qos=0)
+client.subscribe('thirdSector', qos=0)
 
 ##publish
 PortRF = serial.Serial('/dev/ttyAMA0',9600)
@@ -56,7 +57,7 @@ while True:
 		if ObjectId(ID) in allowed:
 			clientPublish = mqtt.Client()
 			clientPublish.connect('localhost', 1883, 60)
-			clientPublish.publish('secondSector', lapTime)
+			clientPublish.publish('firstSector', lapTime)
 			clientPublish.disconnect()
 			allowed.remove(ObjectId(ID))
 			print("first sector time: ", sector_time.total_seconds())
