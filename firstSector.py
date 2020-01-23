@@ -5,6 +5,22 @@ import serial
 import time
 import paho.mqtt.client as mqtt
 import json
+import socketio
+
+sio = socketio.Client()
+
+
+@sio.event
+def connect():
+    print('connection established')
+
+
+@sio.event
+def disconnect():
+    print('disconnected from server')
+
+
+sio.connect('http://localhost:3015')
 
 client = MongoClient('mongodb://localhost:27000/')
 db = client.rasp15
@@ -72,9 +88,11 @@ while True:
 					}
 				}
 			)
+			sio.emit('raspberry message', {'response': 'update'})
 			print("if----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
 			print("Response: ", response)
 		else:
 			print('Not allowed')
 client.loop_stop()
 client.disconnect()
+sio.disconnect()

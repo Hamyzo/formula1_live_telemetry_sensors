@@ -4,10 +4,27 @@ from datetime import datetime, timedelta
 import serial
 import paho.mqtt.client as mqtt
 import json
+import socketio
+
+sio = socketio.Client()
+
+
+@sio.event
+def connect():
+    print('connection established')
+
+
+@sio.event
+def disconnect():
+    print('disconnected from server')
+
+
+sio.connect('http://localhost:3015')
 
 client = MongoClient('mongodb://localhost:27000/')
 db = client.rasp15
 races = db.races
+
 
 def scan_car():
     PortRF = serial.Serial('/dev/ttyAMA0', 9600)
@@ -20,6 +37,7 @@ def scan_car():
                 ID = ID + str(read_byte)
             print(ID)
             return (ID)
+
 
 today_races = races.find({"status": "pending"})
 allowed = []
@@ -58,6 +76,7 @@ time_dict = {}
 lap_count = 0
 race_id = 0
 
+
 def on_message(client, data, message):
     global race_id
     global lap_count
@@ -70,6 +89,7 @@ def on_message(client, data, message):
     print('onmessage lapPPPPP', lap_count)
     lap_dict[key_dict] = lap_count
     time_dict[key_dict] = datetime.strptime(value_dict, '%Y-%m-%d %H:%M:%S.%f')
+
 
 client = mqtt.Client()
 client.connect('192.168.137.8', 1883, 60)
@@ -102,7 +122,7 @@ while True:
             clientPublish.publish('thirdSector', lapTime)
             clientPublish.disconnect()
             allowed.remove(ObjectId(ID))
-            if lap_dict[str(ObjectId(ID))]>1:
+            if lap_dict[str(ObjectId(ID))] > 1:
                 sector_time = current_time - time_dict[str(ObjectId(ID))]
                 print("third sector time: ", sector_time.total_seconds())
                 response = races.update(
@@ -116,12 +136,14 @@ while True:
                         }
                     }
                 )
-                print("if----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
-                print("Response: ", response)
-            else:
-                print('PRINTTTTTT', lap_dict[str(ObjectId(ID))])
-                print("else----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
+                sio.emit('raspberry message', {'response': 'update'})
+            print("if----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
+            print("Response: ", response)
         else:
-            print('Not allowed')
+            print('PRINTTTTTT', lap_dict[str(ObjectId(ID))])
+            print("else----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
+    else:
+        print('Not allowed')
 client.loop_stop()
 client.disconnect()
+sio.disconnect()
