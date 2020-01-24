@@ -19,7 +19,6 @@ def connect():
 def disconnect():
     print('disconnected from server')
 
-
 sio.connect('http://localhost:3015')
 
 client = MongoClient('mongodb://localhost:27000/')
@@ -70,7 +69,7 @@ while True:
 		}
 		lapTime = json.dumps(lapTimeJson)
 		sector_time = current_time - time_dict[str(ObjectId(ID))]
-		if ObjectId(ID) in allowed:
+		if ObjectId(ID) in allowed and ObjectId(ID) != '303030303030303030303030':
 			clientPublish = mqtt.Client()
 			clientPublish.connect('localhost', 1883, 60)
 			clientPublish.publish('firstSector', lapTime)

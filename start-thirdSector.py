@@ -42,12 +42,27 @@ def scan_car():
 today_races = races.find({"status": "pending"})
 allowed = []
 raceId = 0
+lapsNum = 0
+carsNum = 0
 lap_dict = {}
+is_last = False
 if today_races.count() > 0:
     for idx, race in enumerate(today_races):
         print("{}) {}".format(idx + 1, race['country']))
     raceId = int(input('Please enter number of the race: '))
+    lapsNum = races.find()[raceId - 1]['nb_laps']
     raceId = ObjectId(races.find()[raceId - 1]['_id'])
+    print("number of laps ", lapsNum)
+    races.update(
+        {
+            "_id": raceId
+        },
+        {"$set":
+            {
+                "status": "ongoing"
+            }
+        }
+    )
     while True:
         is_scanning = raw_input('Scan a new car ? (y/n)')
         if is_scanning == "y":
@@ -63,7 +78,9 @@ if today_races.count() > 0:
                     }
                 }
             )
+            carsNum = carsNum + 1
             allowed.append(ObjectId(carId))
+            # sio.emit('raspberry message', {'response': 'update'})
             lap_dict[str(ObjectId(carId))] = 0
         else:
             print("Everything's ready")
@@ -106,10 +123,12 @@ while True:
         for Counter in range(0, 12):
             read_byte = PortRF.read()
             ID = ID + str(read_byte)
-        if ObjectId(ID) in allowed:
+        if ObjectId(ID) in allowed and is_last == False and ObjectId(ID) != '303030303030303030303030':
             lap_dict[str(ObjectId(ID))] = lap_dict[str(ObjectId(ID))] + 1
             current_time = datetime.now()
             print('lap ', lap_dict[str(ObjectId(ID))])
+            if lap_dict[str(ObjectId(ID))] == lapsNum:
+                is_last = True
             lapTimeJson = {
                 '_id': str(ObjectId(ID)),
                 'date': str(current_time),
@@ -136,14 +155,54 @@ while True:
                         }
                     }
                 )
-                sio.emit('raspberry message', {'response': 'update'})
-            print("if----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
-            print("Response: ", response)
-        else:
-            print('PRINTTTTTT', lap_dict[str(ObjectId(ID))])
-            print("else----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
-    else:
-        print('Not allowed')
+                #sio.emit('raspberry message', {'response': 'update'})
+                print("if----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
+        elif ObjectId(ID) in allowed and is_last == True and carsNum > 0:
+            lap_dict[str(ObjectId(ID))] = lap_dict[str(ObjectId(ID))] + 1
+            current_time = datetime.now()
+            print('lap ', lap_dict[str(ObjectId(ID))])
+            allowed.remove(ObjectId(ID))
+            sector_time = current_time - time_dict[str(ObjectId(ID))]
+            print("third sector time: ", sector_time.total_seconds())
+            carsNum = carsNum - 1
+            response = races.update(
+                {
+                    "_id": ObjectId(raceId),
+                    "cars.car": ObjectId(ID)
+                },
+                {"$push":
+                    {
+                        "cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))] - 2): sector_time.total_seconds()
+                    }
+                }
+            )
+            sio.emit('raspberry message', {'response': 'update'})
+            races.update(
+                {
+                    "_id": ObjectId(raceId),
+                    "cars.car": ObjectId(ID)
+                },
+                {"$set":
+                    {
+                        "cars.$.status": "finished"
+                    }
+                }
+            )
+            print("-------------It was your final lap---------------")
+            races.update(
+                {
+                    "_id": raceId
+                },
+                {"$set":
+                    {
+                        "status": "finished"
+                    }
+                }
+            )
+        elif ObjectId(ID) not in allowed and is_last == False:
+            print("NOT ALLOWED")
+        elif ObjectId(ID) not in allowed and is_last == True and carsNum == 0:
+            print("Race is finished")
 client.loop_stop()
 client.disconnect()
 sio.disconnect()

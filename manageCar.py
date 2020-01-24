@@ -23,12 +23,14 @@ def parcel_scanned(ID):
             driver = raw_input("driver: ")
             manufacturer = raw_input("manufacturer: ")
             number = raw_input("number: ")
+            color = raw_input("team color: ")
             new_car = {
                 "_id": ObjectId(ID),
                 "team": team,
                 "driver": driver,
                 "manufacturer": manufacturer,
                 "number": number,
+                "color": color
             }
 
             print(new_car)

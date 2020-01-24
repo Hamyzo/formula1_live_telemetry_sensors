@@ -46,7 +46,7 @@ def on_message(client, data, message):
 	lap_dict[key_dict] = lap_count
 	time_dict[key_dict] = datetime.strptime(value_dict, '%Y-%m-%d %H:%M:%S.%f')
 client = mqtt.Client()
-client.connect('192.168.137.245', 1883, 60)
+client.connect('192.168.137.51', 1883, 60)
 client.on_message = on_message
 client.loop_start()
 client.subscribe('firstSector', qos=0)
@@ -69,7 +69,7 @@ while True:
 		}
 		lapTime = json.dumps(lapTimeJson)
 		sector_time = current_time - time_dict[str(ObjectId(ID))]
-		if ObjectId(ID) in allowed:
+		if ObjectId(ID) in allowed and ObjectId(ID) != '303030303030303030303030':
 			clientPublish = mqtt.Client()
 			clientPublish.connect('localhost', 1883, 60)
 			clientPublish.publish('secondSector', lapTime)
