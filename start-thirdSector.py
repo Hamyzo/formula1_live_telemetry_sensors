@@ -53,9 +53,9 @@ is_last = False
 if today_races.count() > 0:
     for idx, race in enumerate(today_races):
         print("{}) {}".format(idx + 1, race['country']))
-    raceId = int(input('Please enter number of the race: '))
-    lapsNum = races.find()[raceId - 1]['nb_laps']
-    raceId = ObjectId(races.find()[raceId - 1]['_id'])
+    raceId = int(raw_input('Please enter number of the race: '))
+    lapsNum = races.find({"status": "pending"})[raceId - 1]['nb_laps']
+    raceId = ObjectId(races.find({"status": "pending"})[raceId - 1]['_id'])
     races.update(
         {
             "_id": raceId
@@ -84,7 +84,7 @@ if today_races.count() > 0:
             )
             carsNum = carsNum + 1
             allowed.append(ObjectId(carId))
-            # sio.emit('raspberry message', {'response': 'update'})
+            sio.emit('raspberry message', {'response': 'update'})
             lap_dict[str(ObjectId(carId))] = 0
         else:
             print("Everything's ready")
@@ -157,7 +157,7 @@ while True:
                         }
                     }
                 )
-                # sio.emit('raspberry message', {'response': 'update'})
+                sio.emit('raspberry message', {'response': 'update'})
                 print("----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
         #----------------- if it's a last lap -----------------#
         elif ObjectId(ID) in allowed and is_last == True and carsNum > 0:

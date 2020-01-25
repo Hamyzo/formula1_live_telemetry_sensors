@@ -13,7 +13,8 @@ def parcel_scanned(ID):
     print("ID: ", ID)
     car = cars.find_one({"_id": ObjectId(ID)})
     if car:
-        print("Car found: ", car)
+        print("Car found: "
+              "", car)
     else:
         is_create = raw_input("Car not found, do you want to link this id to a new car? (y/n) ")
         if is_create == 'y':
