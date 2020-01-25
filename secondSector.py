@@ -7,33 +7,31 @@ import paho.mqtt.client as mqtt
 import json
 import socketio
 
-sio = socketio.Client()
 
+#----------------- Connecting to the web-socket ------------------#
+sio = socketio.Client()
 
 @sio.event
 def connect():
     print('connection established')
 
-
 @sio.event
 def disconnect():
     print('disconnected from server')
 
-
 sio.connect('http://localhost:3015')
 
+#----------------- Connecting to the MongoDB ---------------------#
 client = MongoClient('mongodb://localhost:27000/')
 db = client.rasp15
 races = db.races
 
-##listen first sector
+#----------------- Listening to the second sector -----------------#
 allowed = []
 time_dict = {}
 lap_dict = {}
 lap_count = 0
 race_id = 0
-
-
 def on_message(client, data, message):
     global race_id
     global lap_count
@@ -46,15 +44,13 @@ def on_message(client, data, message):
     print('lap ', lap_count)
     lap_dict[key_dict] = lap_count
     time_dict[key_dict] = datetime.strptime(value_dict, '%Y-%m-%d %H:%M:%S.%f')
-
-
 client = mqtt.Client()
 client.connect('192.168.137.245', 1883, 60)
 client.on_message = on_message
 client.loop_start()
 client.subscribe('firstSector', qos=0)
 
-##publishing
+#----------------- Publishing car's time on the current sector -----------------#
 PortRF = serial.Serial('/dev/ttyAMA0', 9600)
 while True:
     ID = ""

@@ -6,7 +6,7 @@ import paho.mqtt.client as mqtt
 import json
 import socketio
 
-# connecting to the socket
+#----------------- Connecting to the web-socket -----------------#
 sio = socketio.Client()
 
 
@@ -22,12 +22,13 @@ def disconnect():
 
 sio.connect('http://localhost:3015')
 
-# connecting to the MongoDB
+#----------------- Connecting to the MongoDB -----------------#
 client = MongoClient('mongodb://localhost:27000/')
 db = client.rasp15
 races = db.races
 
 
+#----------------- Scanning the car(card) -----------------#
 def scan_car():
     PortRF = serial.Serial('/dev/ttyAMA0', 9600)
     while True:
@@ -41,6 +42,7 @@ def scan_car():
             return (ID)
 
 
+#----------------- Displaying pending races -----------------#
 today_races = races.find({"status": "pending"})
 allowed = []
 raceId = 0
@@ -64,6 +66,7 @@ if today_races.count() > 0:
             }
         }
     )
+    # ----------------- Adding cars to the race -----------------#
     while True:
         is_scanning = raw_input('Scan a new car ? (y/n)')
         if is_scanning == "y":
@@ -89,7 +92,7 @@ if today_races.count() > 0:
 else:
     print("No race is scheduled for today")
 
-##listen second sector
+#----------------- Listening to the second sector -----------------#
 time_dict = {}
 lap_count = 0
 race_id = 0
@@ -106,15 +109,13 @@ def on_message(client, data, message):
     lap_count = messageJson["currentLap"]
     lap_dict[key_dict] = lap_count
     time_dict[key_dict] = datetime.strptime(value_dict, '%Y-%m-%d %H:%M:%S.%f')
-
-
 client = mqtt.Client()
 client.connect('192.168.137.177', 1883, 60)
 client.on_message = on_message
 client.loop_start()
 client.subscribe('secondSector', qos=0)
 
-##publishing
+# ----------------- Publishing car's time on the current sector -----------------#
 PortRF = serial.Serial('/dev/ttyAMA0', 9600)
 while True:
     ID = ""
@@ -123,6 +124,7 @@ while True:
         for Counter in range(0, 12):
             read_byte = PortRF.read()
             ID = ID + str(read_byte)
+        #----------------- if it's not a last lap -----------------#
         if ObjectId(ID) in allowed and is_last == False and ObjectId(ID) != '303030303030303030303030':
             lap_dict[str(ObjectId(ID))] = lap_dict[str(ObjectId(ID))] + 1
             current_time = datetime.now()
@@ -157,6 +159,7 @@ while True:
                 )
                 # sio.emit('raspberry message', {'response': 'update'})
                 print("----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
+        #----------------- if it's a last lap -----------------#
         elif ObjectId(ID) in allowed and is_last == True and carsNum > 0:
             lap_dict[str(ObjectId(ID))] = lap_dict[str(ObjectId(ID))] + 1
             current_time = datetime.now()
@@ -198,8 +201,10 @@ while True:
                     }
                 }
             )
+        #----------------- if car can't pass this sector-----------------#
         elif ObjectId(ID) not in allowed and is_last == False:
             print("NOT ALLOWED")
+        #----------------- if race is finished -----------------#
         elif ObjectId(ID) not in allowed and is_last == True and carsNum == 0:
             print("Race is finished")
 client.loop_stop()
