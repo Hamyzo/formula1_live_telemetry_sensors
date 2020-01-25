@@ -6,6 +6,7 @@ import paho.mqtt.client as mqtt
 import json
 import socketio
 
+# connecting to the socket
 sio = socketio.Client()
 
 
@@ -21,6 +22,7 @@ def disconnect():
 
 sio.connect('http://localhost:3015')
 
+# connecting to the MongoDB
 client = MongoClient('mongodb://localhost:27000/')
 db = client.rasp15
 races = db.races
@@ -52,7 +54,6 @@ if today_races.count() > 0:
     raceId = int(input('Please enter number of the race: '))
     lapsNum = races.find()[raceId - 1]['nb_laps']
     raceId = ObjectId(races.find()[raceId - 1]['_id'])
-    print("number of laps ", lapsNum)
     races.update(
         {
             "_id": raceId
@@ -88,7 +89,7 @@ if today_races.count() > 0:
 else:
     print("No race is scheduled for today")
 
-##listen third sector
+##listen second sector
 time_dict = {}
 lap_count = 0
 race_id = 0
@@ -103,18 +104,17 @@ def on_message(client, data, message):
     value_dict = str(messageJson["date"])
     race_id = messageJson["raceId"]
     lap_count = messageJson["currentLap"]
-    print('onmessage lapPPPPP', lap_count)
     lap_dict[key_dict] = lap_count
     time_dict[key_dict] = datetime.strptime(value_dict, '%Y-%m-%d %H:%M:%S.%f')
 
 
 client = mqtt.Client()
-client.connect('192.168.137.8', 1883, 60)
+client.connect('192.168.137.177', 1883, 60)
 client.on_message = on_message
 client.loop_start()
 client.subscribe('secondSector', qos=0)
 
-##publish
+##publishing
 PortRF = serial.Serial('/dev/ttyAMA0', 9600)
 while True:
     ID = ""
@@ -155,12 +155,11 @@ while True:
                         }
                     }
                 )
-                #sio.emit('raspberry message', {'response': 'update'})
-                print("if----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
+                # sio.emit('raspberry message', {'response': 'update'})
+                print("----------------------cars.$.lap_times.{}".format(lap_dict[str(ObjectId(ID))]))
         elif ObjectId(ID) in allowed and is_last == True and carsNum > 0:
             lap_dict[str(ObjectId(ID))] = lap_dict[str(ObjectId(ID))] + 1
             current_time = datetime.now()
-            print('lap ', lap_dict[str(ObjectId(ID))])
             allowed.remove(ObjectId(ID))
             sector_time = current_time - time_dict[str(ObjectId(ID))]
             print("third sector time: ", sector_time.total_seconds())
